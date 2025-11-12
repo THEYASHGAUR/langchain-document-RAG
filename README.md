@@ -62,26 +62,24 @@ The following flow mirrors the actual code in `main.py`:
 
 ```mermaid
 flowchart TD
-    A[User Input: Query] --> B[Load .env via dotenv]
+    A[User Input Query] --> B[Load env via dotenv]
     B --> C[Load PDF using PyPDFLoader]
     C --> D[Split into chunks using RecursiveCharacterTextSplitter]
     D --> E[Initialize OpenAIEmbeddings]
     E --> F[Initialize Pinecone client]
-    F --> G[Create/Populate Vector Index using PineconeVectorStore.from_documents]
-    G --> H[Build Retriever: index.as_retriever(k=2)]
+    F --> G[Create Populate Vector Index using PineconeVectorStore from documents]
+    G --> H[Build Retriever k 2]
 
-    %% Query-time path
     A --> H
     H --> I[Similarity Search in Pinecone]
     I --> J[Matched Documents]
 
-    %% LLM Answering
-    J --> K[ChatOpenAI (gpt-4o-mini)]
+    J --> K[ChatOpenAI gpt-4o-mini]
     K --> L[ChatPromptTemplate]
     L --> M[Stuff Documents Chain]
     M --> N[Retrieval Chain]
     N --> O[Generate Answer]
-    O --> P[Return/Print Answer]
+    O --> P[Return Print Answer]
 ```
 
 Steps
@@ -94,6 +92,12 @@ Steps
 - **Prompt + LLM**: `ChatPromptTemplate` + `ChatOpenAI('gpt-4o-mini')` build a documents chain.
 - **Retrieval chain**: `create_retrieval_chain(retriever, document_chain)` wires retrieval to generation.
 - **Answering**: `retrieve_answers(query)` performs similarity search and `chain.invoke({input: query})` to return the final answer.
+
+## Static Diagram
+
+Rendered image for environments without Mermaid support:
+
+![Architecture Flow](docs/architecture-flow.svg)
 
 ## Example Query
 
