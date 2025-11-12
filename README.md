@@ -61,25 +61,26 @@ A question-answering system that leverages LangChain, Pinecone, and OpenAI to pr
 The following flow mirrors the actual code in `main.py`:
 
 ```mermaid
-flowchart TD
-    A[User Input Query] --> B[Load env via dotenv]
-    B --> C[Load PDF using PyPDFLoader]
-    C --> D[Split into chunks using RecursiveCharacterTextSplitter]
-    D --> E[Initialize OpenAIEmbeddings]
-    E --> F[Initialize Pinecone client]
-    F --> G[Create Populate Vector Index using PineconeVectorStore from documents]
-    G --> H[Build Retriever k 2]
-
-    A --> H
-    H --> I[Similarity Search in Pinecone]
-    I --> J[Matched Documents]
-
-    J --> K[ChatOpenAI gpt-4o-mini]
-    K --> L[ChatPromptTemplate]
-    L --> M[Stuff Documents Chain]
-    M --> N[Retrieval Chain]
-    N --> O[Generate Answer]
-    O --> P[Return Print Answer]
+flowchart TB
+  subgraph Row1
+    direction LR
+    A[Query] --> B[Env]
+    B --> C[PDF]
+    C --> D[Chunks]
+    D --> E[Embeds]
+  end
+  subgraph Row2
+    direction RL
+    O[Answer] <-- N[Retrieval]
+    N <-- M[Stuff]
+    M <-- L[Prompt]
+    L <-- K[LLM]
+    K <-- I[Matches]
+    I <-- H[Search]
+    H <-- G[Retriever]
+    G <-- F[Index]
+  end
+  E --> F
 ```
 
 Steps
@@ -95,9 +96,8 @@ Steps
 
 ## Static Diagram
 
-Rendered image for environments without Mermaid support:
-
-![Architecture Flow](docs/architecture-flow.svg)
+Rendered image for environments without Mermaid support (simple, white background):
+![Architecture Flow Simple](docs/architecture-simple.svg)
 
 ## Example Query
 
