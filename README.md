@@ -1,4 +1,4 @@
-# BudgetSpeechQA
+# RAG Application
 
 A question-answering system that leverages LangChain, Pinecone, and OpenAI to provide insights from budget speech documents.
 
@@ -21,7 +21,7 @@ A question-answering system that leverages LangChain, Pinecone, and OpenAI to pr
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd BudgetSpeechQA
+   cd rag-app
    ```
 
 2. Create and activate a virtual environment:
@@ -55,6 +55,45 @@ A question-answering system that leverages LangChain, Pinecone, and OpenAI to pr
    - Create embeddings
    - Store them in Pinecone
    - Answer questions about the document
+
+## Architecture and Flow
+
+The following flow mirrors the actual code in `main.py`:
+
+```mermaid
+flowchart TD
+    A[User Input: Query] --> B[Load .env via dotenv]
+    B --> C[Load PDF using PyPDFLoader]
+    C --> D[Split into chunks using RecursiveCharacterTextSplitter]
+    D --> E[Initialize OpenAIEmbeddings]
+    E --> F[Initialize Pinecone client]
+    F --> G[Create/Populate Vector Index using PineconeVectorStore.from_documents]
+    G --> H[Build Retriever: index.as_retriever(k=2)]
+
+    %% Query-time path
+    A --> H
+    H --> I[Similarity Search in Pinecone]
+    I --> J[Matched Documents]
+
+    %% LLM Answering
+    J --> K[ChatOpenAI (gpt-4o-mini)]
+    K --> L[ChatPromptTemplate]
+    L --> M[Stuff Documents Chain]
+    M --> N[Retrieval Chain]
+    N --> O[Generate Answer]
+    O --> P[Return/Print Answer]
+```
+
+Steps
+- **Load config**: `dotenv` reads `OPENAI_API_KEY` and `PINECONE_API_KEY`.
+- **Load document**: `PyPDFLoader('budget_speech.pdf')` loads pages.
+- **Chunking**: `RecursiveCharacterTextSplitter` creates chunks.
+- **Embeddings**: `OpenAIEmbeddings` prepares vectors.
+- **Vector store**: `PineconeVectorStore.from_documents` indexes chunks in Pinecone.
+- **Retriever**: `index.as_retriever(k=2)` for top-k retrieval.
+- **Prompt + LLM**: `ChatPromptTemplate` + `ChatOpenAI('gpt-4o-mini')` build a documents chain.
+- **Retrieval chain**: `create_retrieval_chain(retriever, document_chain)` wires retrieval to generation.
+- **Answering**: `retrieve_answers(query)` performs similarity search and `chain.invoke({input: query})` to return the final answer.
 
 ## Example Query
 
