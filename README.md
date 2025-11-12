@@ -61,38 +61,29 @@ A question-answering system that leverages LangChain, Pinecone, and OpenAI to pr
 The following flow mirrors the actual code in `main.py`:
 
 ```mermaid
-flowchart TB
-  subgraph Row1
-    direction LR
-    A[Query] --> B[Env]
-    B --> C[PDF]
-    C --> D[Chunks]
-    D --> E[Embeds]
-  end
-  subgraph Row2
-    direction RL
-    O[Answer] <-- N[Retrieval]
-    N <-- M[Stuff]
-    M <-- L[Prompt]
-    L <-- K[LLM]
-    K <-- I[Matches]
-    I <-- H[Search]
-    H <-- G[Retriever]
-    G <-- F[Index]
-  end
-  E --> F
+graph TD
+    A[User Query] --> B[Load PDF]
+    B --> C[Split to Chunks]
+    C --> D[Create Embeddings]
+    D --> E[Store in Pinecone]
+    
+    A --> F[Retrieve Matches]
+    F --> G[Generate Answer]
+    
+    classDef whitebg fill:#fff,stroke:#333,stroke-width:1px;
+    class A,B,C,D,E,F,G whitebg;
 ```
 
-Steps
-- **Load config**: `dotenv` reads `OPENAI_API_KEY` and `PINECONE_API_KEY`.
-- **Load document**: `PyPDFLoader('budget_speech.pdf')` loads pages.
-- **Chunking**: `RecursiveCharacterTextSplitter` creates chunks.
-- **Embeddings**: `OpenAIEmbeddings` prepares vectors.
-- **Vector store**: `PineconeVectorStore.from_documents` indexes chunks in Pinecone.
-- **Retriever**: `index.as_retriever(k=2)` for top-k retrieval.
-- **Prompt + LLM**: `ChatPromptTemplate` + `ChatOpenAI('gpt-4o-mini')` build a documents chain.
-- **Retrieval chain**: `create_retrieval_chain(retriever, document_chain)` wires retrieval to generation.
-- **Answering**: `retrieve_answers(query)` performs similarity search and `chain.invoke({input: query})` to return the final answer.
+### Key Steps
+1. **Document Processing**
+   - Load PDF and split into chunks
+   - Generate embeddings for each chunk
+   - Store in vector database (Pinecone)
+
+2. **Query Processing**
+   - User submits a query
+   - System retrieves relevant chunks
+   - LLM generates answer using context
 
 ## Static Diagram
 
