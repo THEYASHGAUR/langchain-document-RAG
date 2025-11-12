@@ -7,16 +7,15 @@
 # Import Required Libraries
 # ----------------------------
 import os
-import openai
-import langchain
-import pinecone
 from dotenv import load_dotenv
-from langchain.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Pinecone
-from langchain.chains.question_answering import load_qa_chain
-from langchain import OpenAI
+from pinecone import Pinecone
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_pinecone import PineconeVectorStore
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
 
 # ----------------------------
 # Load Environment Variables
@@ -61,14 +60,16 @@ print(f"Embedding length: {len(vectors)}")
 # ----------------------------
 # 4. Initialize Pinecone Vector Database
 # ----------------------------
-pinecone.init(
-    api_key=os.environ['PINECONE_API_KEY'],
-    environment="gcp-starter"
-)
+# Initialize Pinecone client
+pc = Pinecone(api_key=os.environ['PINECONE_API_KEY'])
 index_name = "langchainvector"
 
 # Create the vector index
-index = Pinecone.from_documents(doc, embeddings, index_name=index_name)
+index = PineconeVectorStore.from_documents(
+    documents=documents,
+    embedding=embeddings,
+    index_name=index_name
+)
 
 # ----------------------------
 # 5. Define Query Retrieval
@@ -81,8 +82,14 @@ def retrieve_query(query, k=2):
 # ----------------------------
 # 6. Load QA Chain with OpenAI
 # ----------------------------
-llm = OpenAI(model_name="text-davinci-003", temperature=0.5)
-chain = load_qa_chain(llm, chain_type="stuff")
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant. Use the provided context to answer the question."),
+    ("human", "{input}")
+])
+document_chain = create_stuff_documents_chain(llm, prompt)
+retriever = index.as_retriever(search_kwargs={"k": 2})
+chain = create_retrieval_chain(retriever, document_chain)
 
 # ----------------------------
 # 7. Retrieve Answers from Documents
@@ -90,9 +97,13 @@ chain = load_qa_chain(llm, chain_type="stuff")
 def retrieve_answers(query):
     """Fetches relevant documents and returns an AI-generated answer."""
     doc_search = retrieve_query(query)
-    print("Matched Documents:\n", doc_search)
-    response = chain.run(input_documents=doc_search, question=query)
-    return response
+    print("Matched Documents:")
+    for i, doc in enumerate(doc_search, 1):
+        print(f"\nDocument {i}:")
+        print("-" * 50)
+        print(doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content)
+    result = chain.invoke({"input": query})
+    return result.get("answer")
 
 # ----------------------------
 # 8. Example Usage
